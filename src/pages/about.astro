@@ -39,8 +39,38 @@ const flagged = site.flagged ?? 0;
         同步于 {new Date(site.upstreamSyncedAt).toLocaleDateString('zh-CN')}。
       </p>
       <p>
-        本站<strong>不镜像示例图片</strong>。上游的图像／视频类提示词带有示例图，
-        图片托管的流量成本和版权状态都不同于文字数据，所以这里只保留链接，点回原站查看。
+        图像／视频／音频类提示词带有示例媒材，本站的处理方式是<strong>引用而非复制</strong>——
+        详见下一节。
+      </p>
+
+      <h2>关于示例图片和视频</h2>
+      <p>
+        本站<strong>不镜像这些文件</strong>。原因有两个：
+      </p>
+      <p>
+        一是<strong>它们并不在上游自己的服务器上</strong>。约四百条带媒材的提示词里，
+        一部分指向上游的对象存储，另一部分直接是 <code>wiro.ai</code>、<code>fal.media</code>
+        这类生成服务的 CDN 地址——用户生成完把链接粘过来的，上游也只是存了个 URL。
+        找上游要授权也覆盖不了这些图。
+      </p>
+      <p>
+        二是<strong>体积</strong>。图片单张 288 KB 到 1.3 MB，视频单个 400–900 KB，
+        音频更是单个 16 MB。全打包进仓库要几百兆，而且会永久留在 git 历史里。
+      </p>
+      <p>
+        所以这里采取的是引用：图片经
+        <a href="https://images.weserv.nl/" target="_blank" rel="noopener">weserv.nl</a>
+        中转并压成 WebP 再展示（列表页约 17 KB，详情页约 120 KB，相对原图小一到两个数量级），
+        <strong>文件始终由原站提供，本站一个字节都不落盘</strong>，
+        源站压力也由代理的 CDN 缓存承担。点击图片打开的是原始文件。
+      </p>
+      <p>
+        视频用 <code>preload="metadata"</code>——只取元数据出首帧，点了才播；
+        音频用 <code>preload="none"</code>——不点播放，一个字节都不会下载。
+      </p>
+      <p>
+        图片加载失败时（代理不可用、原站删了文件）会自动退化成一条「查看原图」链接，
+        不会留下碎图。
       </p>
 
       <h2>许可</h2>

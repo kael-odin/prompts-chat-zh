@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import PromptCard from '../../components/PromptCard.astro';
+import PromptMedia from '../../components/PromptMedia.astro';
 import { getPrompts, renderMarkdown, typeLabel } from '../../lib/site.js';
 import { url } from '../../lib/url.js';
 import { SITE } from '../../lib/config.js';
@@ -137,6 +138,14 @@ const issueUrl =
     )
   }
 
+  {
+    prompt.mediaUrl && (
+      <div style="margin: 22px 0 4px">
+        <PromptMedia prompt={prompt} variant="detail" />
+      </div>
+    )
+  }
+
   <div class="toolbar" data-lang-root>
     <div class="seg" role="group" aria-label="显示语言">
       <button type="button" data-lang="zh" aria-pressed="true">中文</button>
@@ -165,17 +174,6 @@ const issueUrl =
       <div class="prose" set:html={enHtml} />
     </section>
   </article>
-
-  {
-    prompt.mediaUrl && (
-      <div class="media-note" style="margin-top:20px">
-        <p class="notice">
-          上游示例图（本站不镜像图片，仅链回原站）：
-          <a href={prompt.sourceUrl} target="_blank" rel="noopener">查看原图 →</a>
-        </p>
-      </div>
-    )
-  }
 
   {
     related.length > 0 && (

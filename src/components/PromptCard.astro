@@ -1,13 +1,19 @@
 ---
 import { url } from '../lib/url.js';
 import { typeLabel, plainText } from '../lib/site.js';
+import PromptMedia from './PromptMedia.astro';
 
 const { prompt } = Astro.props;
 const excerpt = prompt.summary || plainText(prompt.content || prompt.contentEn, 200);
 const body = prompt.content || prompt.contentEn;
+
+// 卡片里只给图片做缩略图。视频卡片得渲染 <video> 才能出画面，几十个一起上太重，不值当。
+const showThumb = prompt.type === 'IMAGE' && prompt.mediaUrl;
 ---
 
 <li class="card">
+  {showThumb && <PromptMedia prompt={prompt} variant="card" />}
+
   <div class="card-tags">
     <span class={`badge t-${prompt.type}`}>{typeLabel(prompt.type)}</span>
     {

@@ -1,0 +1,166 @@
+---
+/**
+ * 提示词的示例媒材。
+ *
+ * 三种类型三套处理，因为它们的体积差了两个数量级：
+ *   · IMAGE  409 条，单张 288 KB–1.3 MB  → 走代理压成 WebP，懒加载
+ *   · VIDEO   42 条，单个 426–938 KB      → preload="metadata"，只取元数据出首帧，点了才播
+ *   · AUDIO    4 条，单个 16 MB（wav）    → preload="none"，不点就一个字节都不下
+ */
+import { proxied, isProxyable, MEDIA_LABELS } from '../lib/media.js';
+
+const { prompt, variant = 'card' } = Astro.props;
+
+const url = prompt.mediaUrl;
+const type = prompt.type;
+const label = MEDIA_LABELS[type] ?? '示例';
+
+const width = variant === 'card' ? 400 : 1200;
+const thumb = isProxyable(type) ? proxied(url, width) : null;
+---
+
+{
+  url && (
+    <figure class={`media media-${variant}`} data-media>
+      {thumb && (
+        <>
+          <a class="media-frame" href={url} target="_blank" rel="noopener" title="查看原图">
+            <img
+              src={thumb}
+              alt={`${prompt.title} 的${label}`}
+              loading="lazy"
+              decoding="async"
+              referrerpolicy="no-referrer"
+              data-media-img
+              {...variant === 'card'
+                ? { width, height: Math.round(width * 0.66) }
+                : {}}
+            />
+          </a>
+          <figcaption class="media-fallback">
+            <a href={url} target="_blank" rel="noopener">查看{label} →</a>
+          </figcaption>
+        </>
+      )}
+
+      {type === 'VIDEO' && (
+        <video
+          class="media-frame"
+          src={url}
+          controls
+          preload="metadata"
+          playsinline
+          title={`${prompt.title} 的${label}`}
+        />
+      )}
+
+      {type === 'AUDIO' && (
+        <audio class="media-audio" src={url} controls preload="none" />
+      )}
+
+      {variant === 'detail' && (
+        <figcaption class="media-caption">
+          {label}来自原站，本站只做引用、不镜像。
+          <a href={url} target="_blank" rel="noopener">打开原始文件</a>
+        </figcaption>
+      )}
+    </figure>
+  )
+}
+
+<script>
+  // 代理挂了或原图失效时，不要留一个碎图图标——退化成一条链接
+  const mark = (img) => img.closest('[data-media]')?.classList.add('media-failed');
+
+  document.querySelectorAll('[data-media-img]').forEach((img) => {
+    img.addEventListener('error', () => mark(img), { once: true });
+    // 出错发生在脚本绑定之前的情况（缓存里已经是坏的）
+    if (img.complete && img.naturalWidth === 0) mark(img);
+  });
+</script>
+
+<style>
+  .media {
+    margin: 0;
+  }
+
+  /* 列表卡片里的缩略图 */
+  .media-card .media-frame {
+    display: block;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    aspect-ratio: 3 / 2;
+  }
+  .media-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.25s ease;
+  }
+  .media-card:hover img {
+    transform: scale(1.02);
+  }
+
+  /* 详情页的大图。
+     竖向图和横向图都常见，所以这里不写死宽高比：
+     让图自己定尺寸，容器缩到贴合内容，避免竖图被信箱化、也避免布局跳动。 */
+  .media-detail .media-frame {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .media-detail img {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+  }
+  .media-detail video {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    aspect-ratio: 16 / 9;
+    background: var(--surface-2);
+  }
+
+  .media-audio {
+    width: 100%;
+    margin: 4px 0 8px;
+  }
+
+  .media-caption {
+    font-size: 0.8rem;
+    color: var(--ink-3);
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+  .media-caption a {
+    color: var(--ink-2);
+  }
+
+  /* 兜底：图片挂了就只显示这条链接 */
+  .media-fallback {
+    display: none;
+    font-size: 0.85rem;
+    margin-top: 9px;
+  }
+  .media-card .media-fallback {
+    margin-top: 7px;
+    font-size: 0.8rem;
+  }
+  .media-failed .media-frame {
+    display: none;
+  }
+  .media-failed .media-fallback {
+    display: block;
+  }
+</style>
