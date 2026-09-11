@@ -1,0 +1,9 @@
+# data/zh.json 每周都会被重新序列化一遍，锁定 LF 免得 CRLF 转换把 diff 撑大一倍
+* text=auto eol=lf
+
+# 这些是二进制或不该做换行转换的
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+package-lock.json -diff linguist-generated
