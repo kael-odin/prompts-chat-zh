@@ -1,0 +1,513 @@
+openapi: 3.0.3
+
+info:
+  title: prompts.chat 公开 API
+  version: "1.0.0"
+  description: |
+    prompts.chat（原 Awesome ChatGPT Prompts）的公开只读接口。
+
+    **无需鉴权**，直接 GET 即可。站点本身是 CC0 1.0 公共领域 dedication 发布，
+    提示词内容可自由复制、修改、分发、商用。
+
+    这份描述是为「提示词中文站」这个镜像项目在 Apifox 里调试上游 API 而写的，
+    字段与参数语义均按 2026-09 的实际响应核对过。非 prompts.chat 官方文档。
+
+    接口只有两个：列表和详情。没有 /api/categories、/api/tags、/api/models。
+    错误响应未逐一核对，本文件只描述 200。
+
+  contact:
+    name: 上游仓库
+    url: https://github.com/f/prompts.chat
+
+servers:
+  - url: https://prompts.chat
+    description: 生产环境
+
+tags:
+  - name: 提示词
+    description: 提示词的读取接口
+
+paths:
+  /api/prompts:
+    get:
+      tags: [提示词]
+      summary: 获取提示词列表
+      description: |
+        分页拉取提示词。上游是 offset 分页，没有 cursor。
+
+        **注意 perPage 上限是 100**：传更大的值会被静默夹到 100，不会报错。
+        全量约 2200 条，所以要翻 23 页左右。
+
+        `totalPages` 是按「本次请求实际生效的 perPage」算的：
+        不带 perPage（默认 24）时 totalPages ≈ total/24，
+        带 perPage=100 时才是 total/100。翻页请固定用同一个 perPage。
+
+        本站的同步脚本就是这么翻的：
+        `?perPage=100&sort=oldest&page=1..N`，用 sort=oldest 保证翻页期间顺序稳定。
+      operationId: listPrompts
+      parameters:
+        - name: page
+          in: query
+          description: 页码，从 1 开始。上游会把它夹到 1..10000。
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+
+        - name: perPage
+          in: query
+          description: 每页条数。默认 24，**上限 100**，超过会被夹到 100。
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 24
+          example: 100
+
+        - name: type
+          in: query
+          description: 按提示词类型过滤。
+          required: false
+          schema:
+            type: string
+            enum: [TEXT, IMAGE, VIDEO, AUDIO, SKILL, TASTE, STRUCTURED]
+          example: TEXT
+
+        - name: category
+          in: query
+          description: |
+            按分类过滤。**这里要传的是分类的 id（CUID），不是 slug。**
+
+            传 slug（比如 `coding`）不会报错，但会返回 0 条——这是个很容易踩的坑。
+            categoryId 可以从任意一条带 `category` 的提示词响应里取 `category.id`。
+          required: false
+          schema:
+            type: string
+          example: cmj1yryrs000xt5alwu2p20np
+
+        - name: tag
+          in: query
+          description: |
+            按标签过滤，多个标签用逗号分隔。
+
+            **逻辑是 AND 不是 OR**：`tag=a,b` 要求同时带这两个标签，
+            所以多标签常常直接返回 0 条。只传一个标签才有实用价值。
+          required: false
+          schema:
+            type: string
+          example: image-prompt
+
+        - name: sort
+          in: query
+          description: |
+            排序方式。
+            - `oldest`：按创建时间升序（翻全量快照时用它，顺序稳定）
+            - `upvotes`：按票数降序
+            - 不传：最新在前
+          required: false
+          schema:
+            type: string
+            enum: [oldest, upvotes]
+          example: oldest
+
+        - name: q
+          in: query
+          description: 关键词搜索，大小写不敏感，匹配标题、正文和描述。
+          required: false
+          schema:
+            type: string
+          example: email
+
+      responses:
+        '200':
+          description: 提示词列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptListResponse'
+              example:
+                total: 2213
+                page: 1
+                perPage: 100
+                totalPages: 23
+                prompts:
+                  - id: cmj1zb0xe0006vl0rorq3zz68
+                    title: Ethereum Developer
+                    slug: ethereum-developer
+                    description: null
+                    content: Imagine you are an experienced Ethereum developer tasked with creating a smart contract for a blockchain messenger...
+                    type: TEXT
+                    mediaUrl: null
+                    viewCount: 0
+                    createdAt: '2025-12-16T11:12:34.955Z'
+                    updatedAt: '2025-12-16T11:12:34.955Z'
+                    authorId: cmmdh3e2r0003ju04yvjpj2av
+                    categoryId: cmj1yryrs000xt5alwu2p20np
+                    requiresMediaUpload: false
+                    isFeatured: false
+                    bestWithModels: []
+                    bestWithMCP: []
+                    voteCount: 12
+                    contributorCount: 0
+                    author:
+                      id: cmmdh3e2r0003ju04yvjpj2av
+                      name: ameya
+                      username: ameya-2003
+                      avatar: https://avatars.githubusercontent.com/u/0
+                      verified: false
+                    category:
+                      id: cmj1yryrs000xt5alwu2p20np
+                      name: Coding
+                      slug: coding
+                      description: null
+                      icon: null
+                      order: 1
+                      pinned: false
+                      parentId: null
+                      parent: null
+                    tags: []
+                    contributors: []
+                    userExamples: []
+                    _count:
+                      votes: 12
+                      contributors: 0
+                      outgoingConnections: 0
+                      incomingConnections: 0
+
+  /api/prompts/{id}:
+    get:
+      tags: [提示词]
+      summary: 获取单条提示词详情
+      description: |
+        按 id 取单条。
+
+        **返回的是扁平对象，不是包在 `prompt` 字段里**——这点和列表接口不一样，
+        解析时别照抄列表的写法。
+
+        字段也比列表多了一批内部状态（`isPrivate`、`isUnlisted`、`deletedAt`、
+        `versions`、`hasVoted` 等），同时少了 `contributors`、`userExamples`、
+        `contributorCount`。公开消费方一般用不上内部字段。
+      operationId: getPrompt
+      parameters:
+        - name: id
+          in: path
+          description: 提示词 id（CUID），从列表接口的 `id` 字段取。
+          required: true
+          schema:
+            type: string
+          example: cmj1zb0xe0006vl0rorq3zz68
+
+      responses:
+        '200':
+          description: 提示词详情（扁平对象）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptDetail'
+
+components:
+  schemas:
+    Author:
+      type: object
+      description: 投稿者。上游的账号体系，本站不镜像。
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        username:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+        verified:
+          type: boolean
+
+    Category:
+      type: object
+      description: 分类。支持二级（用 parent / parentId 表达父子关系）。
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        order:
+          type: integer
+        pinned:
+          type: boolean
+        parentId:
+          type: string
+          nullable: true
+        parent:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+          nullable: true
+
+    Tag:
+      type: object
+      description: 标签本体。注意实际挂在提示词上的是下面 PromptTag 那层包装。
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        color:
+          type: string
+          nullable: true
+
+    PromptTag:
+      type: object
+      description: 提示词与标签的关联记录。真正的标签内容在 `tag` 里。
+      properties:
+        promptId:
+          type: string
+        tagId:
+          type: string
+        tag:
+          $ref: '#/components/schemas/Tag'
+
+    Count:
+      type: object
+      description: 关联计数。
+      properties:
+        votes:
+          type: integer
+        contributors:
+          type: integer
+        outgoingConnections:
+          type: integer
+        incomingConnections:
+          type: integer
+
+    PromptListItem:
+      type: object
+      description: 列表里的单条提示词。
+      properties:
+        id:
+          type: string
+          description: 稳定 id，也是详情接口的路径参数。
+        title:
+          type: string
+        slug:
+          type: string
+          description: URL 用的短名。/prompts/{id}_{slug} 是站点的页面地址。
+        description:
+          type: string
+          nullable: true
+          description: 作者填的简介，约四分之一是 null。
+        content:
+          type: string
+          description: 提示词正文，可能很长（实测最长 14 万字符）。
+        type:
+          type: string
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, SKILL, TASTE, STRUCTURED]
+        mediaUrl:
+          type: string
+          nullable: true
+          description: 示例图/视频地址，托管在 DigitalOcean Spaces。约四百条有。
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          description: 增量同步靠它和内容指纹判断哪些条目变了。
+        authorId:
+          type: string
+        categoryId:
+          type: string
+          nullable: true
+        requiredMediaCount:
+          type: integer
+          nullable: true
+        requiredMediaType:
+          type: string
+          nullable: true
+        requiresMediaUpload:
+          type: boolean
+        structuredFormat:
+          type: string
+          nullable: true
+        featuredAt:
+          type: string
+          nullable: true
+        isFeatured:
+          type: boolean
+        delistReason:
+          type: string
+          nullable: true
+        bestWithModels:
+          type: array
+          items:
+            type: string
+        bestWithMCP:
+          type: array
+          items:
+            type: string
+        workflowLink:
+          type: string
+          nullable: true
+        author:
+          allOf:
+            - $ref: '#/components/schemas/Author'
+          nullable: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+          nullable: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptTag'
+        contributors:
+          type: array
+          items:
+            type: object
+        userExamples:
+          type: array
+          items:
+            type: object
+        _count:
+          $ref: '#/components/schemas/Count'
+        voteCount:
+          type: integer
+        contributorCount:
+          type: integer
+      additionalProperties: true
+
+    PromptDetail:
+      type: object
+      description: |
+        详情接口返回的扁平对象。字段是列表那条的超集外加一批内部状态，
+        但不含 contributors / userExamples / contributorCount。
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        content:
+          type: string
+        type:
+          type: string
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, SKILL, TASTE, STRUCTURED]
+        isPrivate:
+          type: boolean
+        mediaUrl:
+          type: string
+          nullable: true
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        authorId:
+          type: string
+        categoryId:
+          type: string
+          nullable: true
+        requiredMediaCount:
+          type: integer
+          nullable: true
+        requiredMediaType:
+          type: string
+          nullable: true
+        requiresMediaUpload:
+          type: boolean
+        structuredFormat:
+          type: string
+          nullable: true
+        featuredAt:
+          type: string
+          nullable: true
+        isFeatured:
+          type: boolean
+        isUnlisted:
+          type: boolean
+        unlistedAt:
+          type: string
+          nullable: true
+        delistReason:
+          type: string
+          nullable: true
+        deletedAt:
+          type: string
+          nullable: true
+        bestWithModels:
+          type: array
+          items:
+            type: string
+        bestWithMCP:
+          type: array
+          items:
+            type: string
+        workflowLink:
+          type: string
+          nullable: true
+        author:
+          allOf:
+            - $ref: '#/components/schemas/Author'
+          nullable: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Category'
+          nullable: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptTag'
+        versions:
+          type: array
+          description: 版本历史。具体结构未逐一核对。
+          items:
+            type: object
+        _count:
+          $ref: '#/components/schemas/Count'
+        voteCount:
+          type: integer
+        hasVoted:
+          type: boolean
+          description: 当前请求者是否投过票。未鉴权时恒为 false。
+      additionalProperties: true
+
+    PromptListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 符合条件的总条数（不受本页 perPage 影响）。
+        page:
+          type: integer
+        perPage:
+          type: integer
+          description: 本次实际生效的每页条数。
+        totalPages:
+          type: integer
+          description: 按本次生效的 perPage 算出的总页数。
+        prompts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptListItem'
