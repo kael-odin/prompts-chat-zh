@@ -9,6 +9,7 @@
   },
   "scripts": {
     "check": "node scripts/check-upstream.mjs",
+    "check:media": "node scripts/check-media.mjs",
     "sync": "node scripts/sync.mjs",
     "translate": "node scripts/translate.mjs",
     "review": "node scripts/review.mjs",

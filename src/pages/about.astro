@@ -48,9 +48,10 @@ const flagged = site.flagged ?? 0;
         本站<strong>不镜像这些文件</strong>。原因有两个：
       </p>
       <p>
-        一是<strong>它们并不在上游自己的服务器上</strong>。约四百条带媒材的提示词里，
-        一部分指向上游的对象存储，另一部分直接是 <code>wiro.ai</code>、<code>fal.media</code>
-        这类生成服务的 CDN 地址——用户生成完把链接粘过来的，上游也只是存了个 URL。
+        一是<strong>它们并不在上游自己的服务器上</strong>。实测这些链接散落在五个不同的域名下：
+        一部分指向上游自己的对象存储，其余是 <code>wiro.ai</code>、<code>fal.media</code> 这类
+        生成服务的 CDN，甚至还有直接指向 <code>pbs.twimg.com</code>（Twitter）和
+        <code>i.ibb.co</code>（图床）的——用户生成完把链接粘过来的，上游也只是存了个 URL。
         找上游要授权也覆盖不了这些图。
       </p>
       <p>

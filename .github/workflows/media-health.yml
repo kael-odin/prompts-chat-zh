@@ -1,0 +1,91 @@
+name: 图片链路健康检查
+
+# 页面上所有示例图都走 weserv.nl 代理再取源站，这一环挂了图就全废。
+# 这里每天探一次：代理不可用就开 issue，恢复了自动关掉。
+
+on:
+  schedule:
+    # 每天 UTC 22:17（北京时间次日 06:17）。挑非整点，避开调度高峰。
+    - cron: '17 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: media-health
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 取样要用当前的上游快照。sync 只用 Node 内置模块，不用装依赖，跑得很快。
+      - name: 拉取上游数据（取样用）
+        run: node scripts/sync.mjs
+
+      - name: 探测图片链路
+        id: probe
+        run: |
+          set +e
+          node scripts/check-media.mjs --sample=10 > /tmp/media-health.txt 2>&1
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          cat /tmp/media-health.txt
+
+      - name: 代理不可用时开 issue
+        if: steps.probe.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create media-health --color B4532A --description "图片链路健康检查" 2>/dev/null || true
+
+          open=$(gh issue list --label media-health --state open --json number --jq 'length')
+          if [ "$open" -gt 0 ]; then
+            echo "已有未关闭的告警 issue，不重复开。"
+            exit 0
+          fi
+
+          {
+            echo "探测显示图片代理 **weserv.nl 大面积不可用**，页面上的示例图基本都会退化成「查看原图」链接。"
+            echo ""
+            echo "探测时间：$(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo '```'
+            cat /tmp/media-health.txt
+            echo '```'
+            echo ""
+            echo "### 处理办法"
+            echo ""
+            echo "确认代理长期不可用的话，把 \`src/lib/media.js\` 里 \`proxied()\` 的返回值改成 \`null\`，"
+            echo "所有图会退化成链接，其余代码不用动。想换代理就改那个文件顶部的 \`PROXY\` 常量。"
+            echo ""
+            echo "链路恢复后这个检查会自动把本 issue 关掉。"
+          } > /tmp/issue.md
+
+          gh issue create \
+            --title "图片链路异常：weserv.nl 代理不可用" \
+            --label media-health \
+            --body-file /tmp/issue.md
+
+      - name: 恢复正常则关闭告警 issue
+        if: steps.probe.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nums=$(gh issue list --label media-health --state open --json number --jq '.[].number')
+          if [ -z "$nums" ]; then
+            echo "没有未关闭的告警 issue。"
+            exit 0
+          fi
+          for n in $nums; do
+            gh issue close "$n" --comment "链路探测已恢复正常，自动关闭。"
+          done
