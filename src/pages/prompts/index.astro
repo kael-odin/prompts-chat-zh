@@ -1,0 +1,30 @@
+---
+import Base from '../../layouts/Base.astro';
+import Search from '../../components/Search.astro';
+import PromptGrid from '../../components/PromptGrid.astro';
+import { getSite } from '../../lib/site.js';
+import { sortPrompts, chunk } from '../../lib/paginate.js';
+import { PER_PAGE } from '../../lib/config.js';
+import { url } from '../../lib/url.js';
+
+const site = getSite();
+const sorted = sortPrompts(site.prompts);
+const { totalPages, pageOf } = chunk(sorted, PER_PAGE);
+---
+
+<Base title="全部提示词" description={`浏览全部 ${site.total} 条提示词，支持中英文搜索。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span> 全部提示词
+  </div>
+
+  <div class="section-head">
+    <h2>全部提示词</h2>
+    <span class="more" style="color:var(--ink-3)">
+      共 {site.total.toLocaleString()} 条 · 第 1 / {totalPages} 页
+    </span>
+  </div>
+
+  <Search />
+
+  <PromptGrid prompts={pageOf(1)} page={1} totalPages={totalPages} basePath="/prompts" />
+</Base>

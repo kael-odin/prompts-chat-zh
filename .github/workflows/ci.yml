@@ -1,0 +1,34 @@
+name: 构建检查
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 上游 API 契约检查
+        run: npm run check
+
+      - name: 拉取上游数据（不翻译，用仓库里的缓存构建）
+        run: npm run sync
+
+      - name: 构建
+        env:
+          SITE_URL: https://example.com
+          BASE_PATH: /
+        run: npm run build

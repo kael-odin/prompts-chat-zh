@@ -1,0 +1,233 @@
+---
+import Base from '../../layouts/Base.astro';
+import PromptCard from '../../components/PromptCard.astro';
+import { getPrompts, renderMarkdown, typeLabel } from '../../lib/site.js';
+import { url } from '../../lib/url.js';
+import { SITE } from '../../lib/config.js';
+
+export async function getStaticPaths() {
+  return getPrompts().map((p) => ({ params: { slug: p.slug }, props: { prompt: p } }));
+}
+
+const { prompt } = Astro.props;
+
+const zhRaw = prompt.content || '';
+const enRaw = prompt.contentEn || '';
+const zhHtml = zhRaw ? renderMarkdown(zhRaw) : '';
+const enHtml = renderMarkdown(enRaw);
+
+// 同类相关推荐
+const related = getPrompts()
+  .filter(
+    (p) =>
+      p.slug !== prompt.slug &&
+      p.category?.slug &&
+      p.category.slug === prompt.category?.slug,
+  )
+  .sort((a, b) => (b.voteCount ?? 0) - (a.voteCount ?? 0))
+  .slice(0, 6);
+
+// 供复制按钮使用的原文。转义 `<` 防止内容里的 </script> 提前闭合标签。
+const rawData = JSON.stringify({ zh: zhRaw, en: enRaw }).replace(/</g, '\\u003c');
+
+const desc = prompt.summary || enRaw.slice(0, 140);
+---
+
+<Base title={prompt.title} description={desc}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span>
+    <a href={url('/prompts/')}>全部提示词</a>
+    {
+      prompt.category && (
+        <>
+          <span aria-hidden="true">/</span>
+          <a href={url(`/categories/${prompt.category.slug}/`)}>{prompt.category.name}</a>
+        </>
+      )
+    }
+  </div>
+
+  <header class="detail-head">
+    <h1>{prompt.title}</h1>
+    {prompt.translated && <p class="title-en">{prompt.titleEn}</p>}
+
+    <div class="meta">
+      <span class={`badge t-${prompt.type}`}>{typeLabel(prompt.type)}</span>
+      {
+        prompt.author && (
+          <>
+            <span class="sep" aria-hidden="true">·</span>
+            <span>@{prompt.author}</span>
+          </>
+        )
+      }
+      <span class="sep" aria-hidden="true">·</span>
+      <span>{(zhRaw || enRaw).length.toLocaleString()} 字符</span>
+      {
+        prompt.tags?.length ? (
+          <>
+            <span class="sep" aria-hidden="true">·</span>
+            <span>{prompt.tags.join(' / ')}</span>
+          </>
+        ) : null
+      }
+      <span class="sep" aria-hidden="true">·</span>
+      <a href={prompt.sourceUrl} target="_blank" rel="noopener">在 prompts.chat 查看</a>
+    </div>
+  </header>
+
+  {
+    !prompt.translated && (
+      <p class="notice warn">
+        这条还没有中文译文，当前显示英文原文。译文由定时任务补齐，也可以到仓库提 issue 催更。
+      </p>
+    )
+  }
+
+  {
+    prompt.issues?.length ? (
+      <p class="notice warn">
+        翻译时结构校验未通过（{prompt.issues.join('；')}），译文可能有格式偏差，建议对照英文原文使用。
+      </p>
+    ) : null
+  }
+
+  {
+    ['IMAGE', 'VIDEO', 'AUDIO'].includes(prompt.type) && (
+      <p class="notice">
+        这是一条<strong>{typeLabel(prompt.type)}生成</strong>类提示词。这类提示词的关键词往往本身就是
+        「咒语」，翻译后出图／出片结果可能和原版不同——建议优先使用英文原文。
+      </p>
+    )
+  }
+
+  <div class="toolbar" data-lang-root>
+    <div class="seg" role="group" aria-label="显示语言">
+      <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+      <button type="button" data-lang="en">原文</button>
+      <button type="button" data-lang="both">对照</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    {zhRaw && <button type="button" class="btn primary" data-copy="zh">复制中文</button>}
+    <button type="button" class="btn" data-copy="en">复制原文</button>
+  </div>
+
+  <article class="prompt-body" data-lang-root>
+    {
+      zhHtml && (
+        <section class="lang-pane" data-pane="zh">
+          {prompt.translated && <p class="lang-label">中文译文</p>}
+          <div class="prose" set:html={zhHtml} />
+        </section>
+      )
+    }
+
+    <section class="lang-pane" data-pane="en">
+      <p class="lang-label">English original</p>
+      <div class="prose" set:html={enHtml} />
+    </section>
+  </article>
+
+  {
+    prompt.mediaUrl && (
+      <div class="media-note" style="margin-top:20px">
+        <p class="notice">
+          上游示例图（本站不镜像图片，仅链回原站）：
+          <a href={prompt.sourceUrl} target="_blank" rel="noopener">查看原图 →</a>
+        </p>
+      </div>
+    )
+  }
+
+  {
+    related.length > 0 && (
+      <section class="related">
+        <div class="section-head">
+          <h2>同类提示词</h2>
+          <a class="more" href={url(`/categories/${prompt.category.slug}/`)}>
+            更多「{prompt.category.name}」→
+          </a>
+        </div>
+        <ul class="grid">
+          {related.map((p) => (
+            <PromptCard prompt={p} />
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <script type="application/json" id="raw-data" set:html={rawData} />
+
+  <script>
+    (function () {
+      // ---- 语言切换 ----
+      const root = document.querySelector('[data-lang-root]');
+      const btns = root ? Array.from(root.querySelectorAll('[data-lang]')) : [];
+      const KEY = 'pcz-lang';
+
+      function applyLang(mode) {
+        btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === mode)));
+        document.querySelectorAll('[data-pane]').forEach((pane) => {
+          pane.hidden = mode === 'both' ? false : pane.dataset.pane !== mode;
+        });
+      }
+
+      btns.forEach((b) =>
+        b.addEventListener('click', () => {
+          applyLang(b.dataset.lang);
+          try {
+            localStorage.setItem(KEY, b.dataset.lang);
+          } catch (e) {
+            /* 隐私模式下 localStorage 可能不可用，忽略 */
+          }
+        }),
+      );
+
+      let saved = 'zh';
+      try {
+        saved = localStorage.getItem(KEY) || 'zh';
+      } catch (e) {
+        /* 同上 */
+      }
+      // 只有确实存在中文译文时才默认中文，否则留在原文
+      if (saved === 'zh' && !document.querySelector('[data-pane="zh"]')) saved = 'en';
+      applyLang(saved);
+
+      // ---- 复制 ----
+      const holder = document.getElementById('raw-data');
+      const raw = holder ? JSON.parse(holder.textContent || '{}') : {};
+
+      async function copy(text, btn) {
+        const original = btn.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制';
+        } catch (e) {
+          // clipboard API 需要 https 或 localhost，兜底用老办法
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          btn.textContent = '已复制';
+        }
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1400);
+      }
+
+      document.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const text = raw[btn.dataset.copy];
+          if (text) copy(text, btn);
+        });
+      });
+    })();
+  </script>
+</Base>

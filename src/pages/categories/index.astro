@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getSite } from '../../lib/site.js';
+import { url } from '../../lib/url.js';
+
+const site = getSite();
+---
+
+<Base title="分类" description={`按分类浏览 ${site.total} 条提示词，共 ${site.categories.length} 个分类。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span> 分类
+  </div>
+
+  <div class="section-head">
+    <h2>分类</h2>
+    <span class="more" style="color:var(--ink-3)">共 {site.categories.length} 个</span>
+  </div>
+
+  <ul class="grid">
+    {
+      site.categories.map((c) => (
+        <li class="card">
+          <h3>
+            <a href={url(`/categories/${c.slug}/`)}>{c.name}</a>
+          </h3>
+          <div class="foot">
+            <span>{c.count} 条提示词</span>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

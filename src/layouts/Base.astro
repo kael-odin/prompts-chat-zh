@@ -1,0 +1,91 @@
+---
+import '../styles/global.css';
+import { SITE } from '../lib/config.js';
+import { url } from '../lib/url.js';
+
+const { title, description = SITE.description } = Astro.props;
+
+const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.tagline}`;
+const here = Astro.url.pathname.replace(/\/+$/, '') || '/';
+
+const nav = [
+  { href: '/', label: '首页' },
+  { href: '/prompts/', label: '全部提示词' },
+  { href: '/categories/', label: '分类' },
+  { href: '/about/', label: '关于' },
+];
+
+const isCurrent = (href) => {
+  const target = url(href).replace(/\/+$/, '') || '/';
+  if (href === '/') return here === target;
+  return here === target || here.startsWith(`${target}/`);
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? SITE.upstream)} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+    <meta name="theme-color" content="#b4532a" />
+    <link rel="alternate" hreflang="zh-CN" href={new URL(Astro.url.pathname, Astro.site ?? SITE.upstream)} />
+    <link rel="alternate" hreflang="en" href={SITE.upstream} />
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到主要内容</a>
+
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href={url('/')}>
+          {SITE.name}
+          <small>{SITE.tagline}</small>
+        </a>
+        <nav class="nav" aria-label="主导航">
+          {
+            nav.map((item) => (
+              <a href={url(item.href)} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="wrap">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          本站是 <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a> 的
+          <strong>非官方中文镜像</strong>，与上游作者无隶属关系。
+          提示词内容来自上游公开数据，依 <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0 1.0</a>
+          公共领域 dedication 发布，可自由使用。站点代码以 MIT 许可开源。
+        </p>
+        <p>
+          中文译文由机器翻译生成，可能存在偏差——每条都保留了英文原文，可随时对照。
+          想查看最新内容或参与投稿，请前往 <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a>。
+        </p>
+        <p>
+          <a href={SITE.repo} target="_blank" rel="noopener">源码仓库</a>
+          <span aria-hidden="true"> · </span>
+          <a href={url('/about/')}>关于与数据来源</a>
+          <span aria-hidden="true"> · </span>
+          <a href="https://github.com/f/prompts.chat" target="_blank" rel="noopener">上游仓库</a>
+        </p>
+      </div>
+    </footer>
+
+    <slot name="scripts" />
+  </body>
+</html>

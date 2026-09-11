@@ -1,0 +1,34 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PromptGrid from '../../../components/PromptGrid.astro';
+import { getSite } from '../../../lib/site.js';
+import { sortPrompts, restPages } from '../../../lib/paginate.js';
+import { PER_PAGE } from '../../../lib/config.js';
+import { url } from '../../../lib/url.js';
+
+const site = getSite();
+
+// 注意：Astro 会把 getStaticPaths 提升到模块顶部，所以它只能引用 import 进来的东西，
+// 不能引用 frontmatter 里声明的常量——这里必须自己再调一次 getSite()（内部有缓存，开销可忽略）。
+export async function getStaticPaths() {
+  return restPages(sortPrompts(getSite().prompts), PER_PAGE, (prompts) => ({ prompts }));
+}
+
+const { prompts, page, totalPages } = Astro.props;
+---
+
+<Base title={`全部提示词 · 第 ${page} 页`} description={`全部提示词列表第 ${page} 页，共 ${totalPages} 页。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span>
+    <a href={url('/prompts/')}>全部提示词</a> <span aria-hidden="true">/</span> 第 {page} 页
+  </div>
+
+  <div class="section-head">
+    <h2>全部提示词</h2>
+    <span class="more" style="color:var(--ink-3)">
+      共 {site.total.toLocaleString()} 条 · 第 {page} / {totalPages} 页
+    </span>
+  </div>
+
+  <PromptGrid prompts={prompts} page={page} totalPages={totalPages} basePath="/prompts" />
+</Base>

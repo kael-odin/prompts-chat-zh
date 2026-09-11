@@ -1,0 +1,27 @@
+{
+  "name": "prompts-chat-zh",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "prompts.chat 的中文镜像站：把 CC0 的公开提示词翻译成简体中文，静态托管在 GitHub Pages。",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node scripts/check-upstream.mjs",
+    "sync": "node scripts/sync.mjs",
+    "translate": "node scripts/translate.mjs",
+    "review": "node scripts/review.mjs",
+    "data": "node scripts/build-data.mjs",
+    "dev": "npm run data && astro dev",
+    "build": "npm run data && astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "pipeline": "npm run sync && npm run translate && npm run data"
+  },
+  "devDependencies": {
+    "astro": "^5.14.1",
+    "marked": "^15.0.7",
+    "pagefind": "^1.4.0",
+    "sanitize-html": "^2.14.0"
+  }
+}

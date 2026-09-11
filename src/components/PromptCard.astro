@@ -1,0 +1,55 @@
+---
+import { url } from '../lib/url.js';
+import { typeLabel, plainText } from '../lib/site.js';
+
+const { prompt } = Astro.props;
+const excerpt = prompt.summary || plainText(prompt.content || prompt.contentEn, 200);
+const body = prompt.content || prompt.contentEn;
+---
+
+<li class="card">
+  <div class="card-tags">
+    <span class={`badge t-${prompt.type}`}>{typeLabel(prompt.type)}</span>
+    {
+      prompt.category && (
+        <a class="badge" href={url(`/categories/${prompt.category.slug}/`)}>
+          {prompt.category.name}
+        </a>
+      )
+    }
+    {!prompt.translated && <span class="badge raw">未翻译</span>}
+    {prompt.issues?.length ? <span class="badge raw">待校对</span> : null}
+  </div>
+
+  <h3><a href={url(`/prompts/${prompt.slug}/`)}>{prompt.title}</a></h3>
+
+  {prompt.translated && <p class="en">{prompt.titleEn}</p>}
+
+  <p class="excerpt">{excerpt}</p>
+
+  <div class="foot">
+    {prompt.author && <span>@{prompt.author}</span>}
+    <span class="dot" aria-hidden="true">·</span>
+    <span>{body.length.toLocaleString()} 字符</span>
+    {
+      prompt.tags?.length ? (
+        <>
+          <span class="dot" aria-hidden="true">·</span>
+          <span>{prompt.tags.slice(0, 2).join(' / ')}</span>
+        </>
+      ) : null
+    }
+  </div>
+</li>
+
+<style>
+  .card-tags {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .foot .dot {
+    color: var(--line-2);
+  }
+</style>

@@ -1,0 +1,36 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PromptGrid from '../../../components/PromptGrid.astro';
+import { getSite, typeLabel } from '../../../lib/site.js';
+import { sortPrompts, chunk } from '../../../lib/paginate.js';
+import { PER_PAGE } from '../../../lib/config.js';
+import { url } from '../../../lib/url.js';
+
+export async function getStaticPaths() {
+  const site = getSite();
+  return site.types.map((t) => ({
+    params: { type: t.name.toLowerCase() },
+    props: { typeName: t.name, count: t.count },
+  }));
+}
+
+const { typeName, count } = Astro.props;
+const list = sortPrompts(getSite().prompts.filter((p) => p.type === typeName));
+const { totalPages, pageOf } = chunk(list, PER_PAGE);
+const label = typeLabel(typeName);
+---
+
+<Base title={`${label}类提示词`} description={`${label}类提示词共 ${count} 条。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span> {label}
+  </div>
+
+  <div class="section-head">
+    <h2>{label}类提示词</h2>
+    <span class="more" style="color:var(--ink-3)">
+      共 {count} 条 · 第 1 / {totalPages} 页
+    </span>
+  </div>
+
+  <PromptGrid prompts={pageOf(1)} page={1} totalPages={totalPages} basePath={`/types/${typeName.toLowerCase()}`} />
+</Base>

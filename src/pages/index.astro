@@ -1,0 +1,88 @@
+---
+import Base from '../layouts/Base.astro';
+import Search from '../components/Search.astro';
+import PromptCard from '../components/PromptCard.astro';
+import { getSite, typeLabel } from '../lib/site.js';
+import { url } from '../lib/url.js';
+import { SITE } from '../lib/config.js';
+
+const site = getSite();
+
+// 首页只放热门一屏，全量在 /prompts/
+const featured = [...site.prompts]
+  .sort((a, b) => (b.voteCount ?? 0) - (a.voteCount ?? 0))
+  .slice(0, 12);
+
+const pct = ((site.translated / site.total) * 100).toFixed(0);
+---
+
+<Base>
+  <section class="hero">
+    <h1>2200 多条公开提示词，全部说中文</h1>
+    <p>
+      <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a>
+      收录的提示词几乎全是英文的。本站把它的公开数据翻成了简体中文——保留下英文原文，
+      随时可对照、可切换、可整段复制。
+    </p>
+    <p>
+      内容来自上游依 CC0 公共领域许可发布的数据，本站是<strong>非官方镜像</strong>，
+      与上游作者无隶属关系。
+    </p>
+
+    <div class="stats">
+      <span><b>{site.total.toLocaleString()}</b>条提示词</span>
+      <span><b>{pct}%</b>已译成中文</span>
+      <span><b>{site.categories.length}</b>个分类</span>
+      <span><b>{site.total - site.translated}</b>条待翻译</span>
+    </div>
+  </section>
+
+  <Search />
+
+  <section>
+    <div class="section-head">
+      <h2>按分类浏览</h2>
+      <a class="more" href={url('/categories/')}>全部分类 →</a>
+    </div>
+    <ul class="chips">
+      {
+        site.categories.slice(0, 14).map((c) => (
+          <li>
+            <a href={url(`/categories/${c.slug}/`)}>
+              {c.name}
+              <span class="n">{c.count}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>按类型浏览</h2>
+    </div>
+    <ul class="chips">
+      {
+        site.types.map((t) => (
+          <li>
+            <a href={url(`/types/${t.name.toLowerCase()}/`)}>
+              {typeLabel(t.name)}
+              <span class="n">{t.count}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>最受欢迎</h2>
+      <a class="more" href={url('/prompts/')}>查看全部 {site.total.toLocaleString()} 条 →</a>
+    </div>
+    <ul class="grid">
+      {featured.map((p) => <PromptCard prompt={p} />)}
+    </ul>
+  </section>
+</Base>

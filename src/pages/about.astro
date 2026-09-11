@@ -1,0 +1,108 @@
+---
+import Base from '../layouts/Base.astro';
+import { getSite } from '../lib/site.js';
+import { url } from '../lib/url.js';
+import { SITE } from '../lib/config.js';
+
+const site = getSite();
+const pct = ((site.translated / site.total) * 100).toFixed(1);
+const flagged = site.flagged ?? 0;
+---
+
+<Base title="关于" description="本站的性质、数据来源、许可与翻译方式说明。">
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span> 关于
+  </div>
+
+  <article class="prompt-body" style="max-width:74ch">
+    <div class="prose">
+      <h1>关于本站</h1>
+
+      <p>
+        本站是 <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a>
+        的<strong>非官方简体中文镜像</strong>。它把上游公开的提示词数据抓下来、译成中文，
+        再以纯静态站点重新呈现。本站与上游作者没有任何隶属关系，也不代表上游。
+      </p>
+
+      <h2>为什么要做</h2>
+      <p>
+        上游站点的界面支持多语言，但它收录的提示词本身几乎全是英文的——
+        翻译的是外壳，不是内容。中文用户要么硬啃英文，要么放弃使用。
+        本站要解决的就是内容本身的语言问题。
+      </p>
+
+      <h2>数据从哪来</h2>
+      <p>
+        提示词全部来自上游的公开接口
+        <code>{site.source}</code>。
+        当前快照共 <strong>{site.total.toLocaleString()}</strong> 条，
+        同步于 {new Date(site.upstreamSyncedAt).toLocaleDateString('zh-CN')}。
+      </p>
+      <p>
+        本站<strong>不镜像示例图片</strong>。上游的图像／视频类提示词带有示例图，
+        图片托管的流量成本和版权状态都不同于文字数据，所以这里只保留链接，点回原站查看。
+      </p>
+
+      <h2>许可</h2>
+      <p>
+        上游把提示词内容与数据（<code>prompts.csv</code>、<code>PROMPTS.md</code>、用户投稿）
+        以 <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0 1.0 通用</a>
+        公共领域 dedication 发布——可复制、可修改、可分发，甚至商用，且无需署名。
+        所以本站的翻译和再分发在法律上没有障碍。
+      </p>
+      <p>
+        尽管如此，本站在页脚显著标注了来源并链回原站。这既是基本的体面，
+        也能让用户知道该去哪里看最新内容、参与投稿。
+      </p>
+      <p>本站自身的代码以 MIT 许可开源，仓库地址见页脚。</p>
+
+      <h2>翻译是怎么做的</h2>
+      <p>
+        译文由大模型批量生成，不是人工翻译。流程大致是：
+      </p>
+      <ol>
+        <li>定时从上游接口拉取全量数据，按内容指纹判断哪些是新增或改动过的；</li>
+        <li>只翻译变化的条目，其余复用缓存——所以上游改一条不会导致全量重翻；</li>
+        <li>
+          送翻之前先把内容拆开：<strong>代码块整块跳过</strong>，
+          <code>{'{{占位符}}'}</code>、<code>{'${变量}'}</code> 这类标记先替换成哨兵，
+          译完再原样还原，不指望模型「自觉」保留；
+        </li>
+        <li>译完逐条比对原文与译文的结构：代码块是否逐字节一致、占位符有没有丢、标题和围栏数量是否守恒。不通过就打回重译，仍不通过则标记出来；</li>
+        <li>合并生成静态页面。</li>
+      </ol>
+      <p>
+        当前进度：<strong>{site.total.toLocaleString()}</strong> 条中已译
+        <strong>{site.translated.toLocaleString()}</strong> 条（{pct}%），
+        其中 <strong>{flagged}</strong> 条带有结构告警（页面上会标出来）。
+        没有译文的条目会显示英文原文并注明。
+      </p>
+
+      <h2>关于译文的可靠性</h2>
+      <p>
+        机器翻译必然有偏差，而提示词对措辞又格外敏感——一个副词的差别就可能改变模型行为。
+        所以本站<strong>对每一条都保留了英文原文</strong>，
+        详情页可以在「中文／原文／对照」之间切换，两个版本都能一键复制。
+      </p>
+      <p>
+        另外，图像、视频、音频生成类的提示词，其关键词往往本身就是模型训练时见过的
+        「咒语」，翻译成中文后出图结果可能明显不同。这类提示词<strong>建议直接使用英文原文</strong>，
+        页面上也有相应提示。
+      </p>
+
+      <h2>发现问题怎么办</h2>
+      <p>
+        译得不对、格式坏了、链接失效，都欢迎到
+        <a href={SITE.repo} target="_blank" rel="noopener">仓库</a>提 issue，
+        附上具体条目的链接即可。
+      </p>
+
+      <h2>想投稿新提示词</h2>
+      <p>
+        本站是只读镜像，不接受投稿。请前往
+        <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a>
+        提交——你在那边发布的提示词会在下一次同步时自动出现在这里。
+      </p>
+    </div>
+  </article>
+</Base>

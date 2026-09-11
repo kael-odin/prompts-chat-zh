@@ -1,0 +1,39 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PromptGrid from '../../../components/PromptGrid.astro';
+import { getSite } from '../../../lib/site.js';
+import { sortPrompts, chunk } from '../../../lib/paginate.js';
+import { PER_PAGE } from '../../../lib/config.js';
+import { url } from '../../../lib/url.js';
+
+const site = getSite();
+
+// getStaticPaths 被 Astro 提升到模块顶部，只能引用 import，故内部重新取一次
+export async function getStaticPaths() {
+  return getSite().categories.map((c) => ({
+    params: { slug: c.slug },
+    props: { name: c.name, count: c.count },
+  }));
+}
+
+const { name, count } = Astro.props;
+const list = sortPrompts(site.prompts.filter((p) => p.category?.slug === Astro.params.slug));
+const { totalPages, pageOf } = chunk(list, PER_PAGE);
+const basePath = `/categories/${Astro.params.slug}`;
+---
+
+<Base title={`${name} 类提示词`} description={`${name} 分类下的提示词，共 ${count} 条。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span>
+    <a href={url('/categories/')}>分类</a> <span aria-hidden="true">/</span> {name}
+  </div>
+
+  <div class="section-head">
+    <h2>{name}</h2>
+    <span class="more" style="color:var(--ink-3)">
+      共 {count} 条 · 第 1 / {totalPages} 页
+    </span>
+  </div>
+
+  <PromptGrid prompts={pageOf(1)} page={1} totalPages={totalPages} basePath={basePath} />
+</Base>

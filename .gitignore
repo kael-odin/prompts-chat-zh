@@ -1,0 +1,22 @@
+# 依赖与构建产物
+node_modules/
+dist/
+.astro/
+
+# 密钥：绝不提交
+.env
+.env.*
+!.env.example
+
+# 上游快照（每次同步重新生成，不入库；译文缓存 data/zh.json 才是要提交的）
+data/upstream.json
+data/site.json
+data/review.md
+
+# 落盘用的临时文件
+data/*.tmp
+
+# 杂项
+.DS_Store
+Thumbs.db
+*.log

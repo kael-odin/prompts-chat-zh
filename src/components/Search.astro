@@ -1,0 +1,45 @@
+---
+/**
+ * Pagefind 搜索框。索引由构建末端的 `pagefind --site dist` 生成，
+ * 开发模式下 dist/pagefind 不存在，脚本 404 后会静默跳过，不影响页面。
+ */
+import { BASE } from '../lib/url.js';
+
+const bundle = `${BASE}/pagefind/`;
+---
+
+<div id="search" class="search-host"></div>
+
+<link rel="stylesheet" href={`${bundle}pagefind-ui.css`} />
+<script src={`${bundle}pagefind-ui.js`} is:inline></script>
+<script is:inline define:vars={{ bundlePath: bundle }}>
+  (function () {
+    function boot() {
+      if (!window.PagefindUI) return; // 开发模式没有索引，跳过
+      new window.PagefindUI({
+        element: '#search',
+        bundlePath: bundlePath,
+        showSubResults: true,
+        showImages: false,
+        translations: {
+          placeholder: '搜索提示词，中英文都可以…',
+          clear_search: '清空',
+          load_more: '加载更多结果',
+          search_label: '搜索本站',
+          filters_label: '筛选',
+          zero_results: '没有找到与「[SEARCH_TERM]」相关的结果',
+          many_results: '找到 [COUNT] 条与「[SEARCH_TERM]」相关的结果',
+          one_result: '找到 1 条与「[SEARCH_TERM]」相关的结果',
+          alt_search: '没有找到「[SEARCH_TERM]」，以下是「[DIFFERENT_TERM]」的结果',
+          search_suggestion: '没有找到「[SEARCH_TERM]」，试试这些关键词：',
+          searching: '搜索中…',
+        },
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  })();
+</script>

@@ -1,0 +1,47 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import PromptGrid from '../../../../components/PromptGrid.astro';
+import { getSite, typeLabel } from '../../../../lib/site.js';
+import { sortPrompts, restPages } from '../../../../lib/paginate.js';
+import { PER_PAGE } from '../../../../lib/config.js';
+import { url } from '../../../../lib/url.js';
+
+const site = getSite();
+
+// getStaticPaths 被 Astro 提升到模块顶部，只能引用 import，故内部重新取一次
+export async function getStaticPaths() {
+  const s = getSite();
+  const out = [];
+  for (const t of s.types) {
+    const list = sortPrompts(s.prompts.filter((p) => p.type === t.name));
+    const paths = restPages(list, PER_PAGE, (prompts) => ({ prompts }));
+    for (const p of paths) {
+      out.push({
+        params: { type: t.name.toLowerCase(), page: p.params.page },
+        props: { ...p.props, typeName: t.name, count: t.count },
+      });
+    }
+  }
+  return out;
+}
+
+const { prompts, page, totalPages, typeName, count } = Astro.props;
+const label = typeLabel(typeName);
+const basePath = `/types/${typeName.toLowerCase()}`;
+---
+
+<Base title={`${label}类提示词 · 第 ${page} 页`} description={`${label}类提示词第 ${page} 页。`}>
+  <div class="crumbs">
+    <a href={url('/')}>首页</a> <span aria-hidden="true">/</span>
+    <a href={url(`${basePath}/`)}>{label}</a> <span aria-hidden="true">/</span> 第 {page} 页
+  </div>
+
+  <div class="section-head">
+    <h2>{label}类提示词</h2>
+    <span class="more" style="color:var(--ink-3)">
+      共 {count} 条 · 第 {page} / {totalPages} 页
+    </span>
+  </div>
+
+  <PromptGrid prompts={prompts} page={page} totalPages={totalPages} basePath={basePath} />
+</Base>

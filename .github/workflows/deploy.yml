@@ -1,0 +1,82 @@
+name: 同步 · 翻译 · 部署
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 每周一 03:23 UTC（北京时间 11:23）拉一次上游增量
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write # 需要把译文缓存提交回仓库
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个部署；不取消进行中的，避免翻译到一半被打断
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 上游 API 契约检查
+        run: npm run check
+
+      - name: 拉取上游数据
+        run: npm run sync
+
+      - name: 翻译新增与变更
+        # 密钥缺失或上游抽风不该挡住部署——没翻到的条目页面会自动回落英文原文
+        continue-on-error: true
+        env:
+          TRANSLATE_API_KEY: ${{ secrets.TRANSLATE_API_KEY }}
+          TRANSLATE_BASE_URL: ${{ secrets.TRANSLATE_BASE_URL }}
+          TRANSLATE_MODEL: deepseek-chat
+        run: npm run translate -- --concurrency=6
+
+      - name: 提交译文缓存
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/zh.json
+          if git diff --staged --quiet; then
+            echo "译文缓存无变化"
+          else
+            git commit -m "chore: 同步译文缓存 [skip ci]"
+            git push
+          fi
+
+      - name: 合并数据并构建
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+          BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
