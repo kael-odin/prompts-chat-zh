@@ -1,48 +1,57 @@
+<div align="center">
+
+<img src="public/og.png" alt="提示词中文站 —— 2200 多条公开提示词，全部说中文" width="820" />
+
 # 提示词中文站
 
-[prompts.chat](https://prompts.chat) 的**非官方简体中文镜像**。
+**prompts.chat 的非官方简体中文镜像**
 
-上游站点的界面支持多语言，但它收录的提示词本身几乎全是英文的——翻译的是外壳，不是内容。
-这个项目把上游公开的提示词数据抓下来、译成中文，以纯静态站点呈现，托管在 GitHub Pages 上。
+2205 条公开提示词，全部译成中文 · 中英对照 · 全文搜索 · 一键复制
 
-**在线地址**：https://kael-odin.github.io/prompts-chat-zh/
+[![部署状态](https://github.com/kael-odin/prompts-chat-zh/actions/workflows/deploy.yml/badge.svg)](https://github.com/kael-odin/prompts-chat-zh/actions/workflows/deploy.yml)
+[![在线站点](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E7%AB%99%E7%82%B9-kael--odin.github.io-b4532a)](https://kael-odin.github.io/prompts-chat-zh/)
+[![许可: MIT](https://img.shields.io/badge/%E4%BB%A3%E7%A0%81-MIT-blue)](LICENSE)
+[![数据许可: CC0](https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-CC0%201.0-lightgrey)](LICENSE-CC0)
+[![Astro](https://img.shields.io/badge/Astro-5-ff5d01?logo=astro&logoColor=white)](https://astro.build)
+[![GitHub Pages](https://img.shields.io/badge/%E6%89%98%E7%AE%A1-GitHub%20Pages-222?logo=github)](https://kael-odin.github.io/prompts-chat-zh/)
+
+[在线访问](https://kael-odin.github.io/prompts-chat-zh/) · [关于本站](https://kael-odin.github.io/prompts-chat-zh/about/) · [全部提示词](https://kael-odin.github.io/prompts-chat-zh/prompts/)
+
+</div>
 
 ---
 
+## 这是什么
+
+[prompts.chat](https://prompts.chat)（前身是 Awesome ChatGPT Prompts）是目前最大的公开提示词库之一，两千多条提示词，CC0 公共领域授权。
+
+但它的**界面支持多语言，内容不支持**——翻译的是外壳，不是提示词本身。中文用户要么硬啃英文，要么放弃。
+
+这个项目把上游的公开数据抓下来、译成中文，以纯静态站点重新呈现。
+
+**它不是什么**：不是上游的官方项目，不是投稿平台，也没有账号、点赞、评论这些社交功能。它是一座只读的中文提示词库。
+
 ## 特性
 
-- **中英对照**：每条提示词都保留英文原文，详情页可在「中文／原文／对照」之间切换，两版都能一键复制
-- **代码与占位符保护**：` ``` ` 代码块整块跳过不译，`{{变量}}`、`${变量}` 这类占位符先替换成哨兵、译完还原
-- **译后结构校验**：逐条比对原文与译文的代码围栏、标题、换行、占位符与花括号，不合格自动打回重译
-- **增量翻译**：以内容指纹为键做缓存，上游改一条只重翻那一条，同一条重复投稿只翻一次
-- **中文全文搜索**：构建期生成 Pagefind 索引，中英文均可检索
-- **零服务端**：纯静态，没有数据库、没有 API 服务器，托管成本为零
-
-### 译后校验查什么
-
-模型输出不可靠，所以译文一律过一遍机器可判定的结构检查，不通过就打回重译（最多重试一次，
-仍不通过则存下译文并在页面上标出「待校对」）：
-
-| 检查项 | 为什么 |
-| --- | --- |
-| 代码围栏数量一致 | 防止模型吞掉或凭空添加代码块 |
-| 标题数量一致 | 防止标题被降级成普通段落 |
-| 换行数不塌缩 | 防止列表项和标题被揉进同一行——这是最隐蔽也最常见的一种损坏 |
-| 占位符一个不少 | `{{var}}`、`${var}` 这类变量丢了，提示词就废了 |
-| 花括号配对 | 只在原文配对而译文不配对时才判不合格（有些原文本身就不配对） |
-| 译文长度合理 | 防止模型截断 |
+- **中英对照** —— 每条都保留英文原文，详情页可在「中文／原文／对照」三档间切换，两版都能一键复制
+- **代码与占位符保护** —— ` ``` ` 代码块整块跳过不译；`{{变量}}`、`${变量}`、`[PLACEHOLDER]` 这类标记先换成哨兵，译完原样还原，不指望模型「自觉」
+- **译后结构校验** —— 逐条比对原文与译文的代码围栏、标题、结构化行、占位符、花括号，不合格自动打回重译
+- **增量翻译** —— 以内容指纹为键做缓存：上游改一条只重翻那一条，同一条重复投稿只翻一次
+- **中文全文搜索** —— 构建期生成 [Pagefind](https://pagefind.app) 索引，中英文关键词都能搜，搜索结果可分享（`?q=`）
+- **零服务端** —— 没有数据库、没有 API 服务器、没有运行时依赖，托管成本为零
+- **可复现** —— 数据来自公开接口，翻译缓存随仓库一起版本化，任何人在本地都能重跑出同样的站点
 
 ## 它是怎么工作的
 
 ```
-GitHub Actions（每周定时 / 手动触发）
+GitHub Actions（每周一定时 / 手动触发）
   │
-  ├─ 1. check-upstream  上游 API 契约检查，结构变了立刻报警
-  ├─ 2. sync             拉取全量提示词 → data/upstream.json
-  ├─ 3. translate        与 data/zh.json 缓存比对，只翻新增/变更的条目
-  │                        └─ 分段保护 → 调用模型 → 结构校验 → 写缓存
-  ├─ 4. 提交缓存         把 data/zh.json 提交回仓库
-  └─ 5. build            Astro 静态构建 + Pagefind 索引 → 部署到 Pages
+  ├─ 1. check     上游 API 契约检查 —— 结构变了立刻报警，而不是默默同步回一堆空数据
+  ├─ 2. sync      拉取全量提示词 → data/upstream.json
+  ├─ 3. translate 与 data/zh.json 缓存比对，只翻新增/变更的条目
+  │                 └─ 分段保护 → 调模型 → 结构校验 → 写缓存（每 25 条落盘）
+  ├─ 4. commit    把 data/zh.json 提交回仓库
+  └─ 5. build     Astro 静态构建 + Pagefind 索引 → 部署到 GitHub Pages
 ```
 
 ### 数据流
@@ -52,43 +61,37 @@ GitHub Actions（每周定时 / 手动触发）
 | `data/zh.json` | ✅ 提交 | 译文缓存，以内容指纹为键。**这是仓库里最值钱的产物** |
 | `data/upstream.json` | ❌ 忽略 | 上游英文快照，每次同步重新生成 |
 | `data/site.json` | ❌ 忽略 | 构建期合并产物，供 Astro 读取 |
-| `data/review.md` | ❌ 忽略 | 中英对照抽查报告，人工验收用 |
+| `docs/upstream-openapi.yaml` | ✅ 提交 | 上游 API 的 OpenAPI 描述，可直接导入 Apifox/Postman |
 
-译文缓存入库、英文快照不入库，是刻意的选择：缓存是**不可再生**的（重翻要花钱、结果还不稳定），
-而英文快照随时能从上游重新拉取。
+译文缓存入库、英文快照不入库是刻意的：缓存**不可再生**（重翻要花钱、结果还不稳定），而英文快照随时能从上游重新拉取。
+
+### 译后校验查什么
+
+模型输出不可靠，所以译文一律过一遍机器可判定的结构检查。不通过就打回重译（最多重试一次），仍不通过则存下译文并在页面上标注「待校对」：
+
+| 检查项 | 防的是什么 |
+| --- | --- |
+| 代码围栏数量一致 | 模型吞掉或凭空添加代码块 |
+| 标题数量一致 | 标题被降级成普通段落 |
+| 结构化行数不减少 | 列表项、标题、表格行被揉进同一行——最隐蔽也最常见的一种损坏 |
+| 占位符一个不少 | `{{var}}`、`${var}` 丢了，提示词就废了 |
+| 花括号配对 | 只在原文配对而译文不配对时才判不合格（有些原文本身就不配对） |
+| 译文长度合理 | 模型截断 |
 
 ## 本地开发
 
 ```bash
 npm install
 
-# 1. 拉取上游数据
-npm run sync
+cp .env.example .env        # 填入翻译端点的 key
 
-# 2. 复制并填写密钥
-cp .env.example .env
-
-# 3. 先翻 20 条看看质量
-npm run translate -- --limit=20
-
-# 4. 生成抽查报告，人工核对译文
-npm run review
-
-# 5. 合并数据
-npm run data
-
-# 6. 起开发服务器
-npm run dev
+npm run sync                # 拉取上游数据
+npm run translate -- --limit=20   # 先翻 20 条看看质量
+npm run review              # 生成中英对照抽查报告，人工核对
+npm run dev                 # 起开发服务器
 ```
 
-### 构建与预览
-
-```bash
-npm run build     # 合并数据 + Astro 构建 + Pagefind 索引
-npm run preview   # 预览 dist/
-```
-
-> 注意：`npm run dev` 不走 Pagefind 索引，搜索框在开发模式下不可用（会静默跳过）。要测搜索请用 `npm run build && npm run preview`。
+> `npm run dev` 不走 Pagefind 索引，**开发模式下搜索框不可用**（会静默跳过）。要测搜索请用 `npm run build && npm run preview`。
 
 ## 命令一览
 
@@ -99,38 +102,38 @@ npm run preview   # 预览 dist/
 | `npm run translate` | 增量翻译 |
 | `npm run review` | 生成中英对照抽查报告 |
 | `npm run data` | 合并上游与译文 |
-| `npm run build` | 构建静态站点 |
-| `npm run pipeline` | sync + translate + data |
+| `npm run build` | 构建静态站点（含 sitemap 与搜索索引） |
+| `npm run preview` | 预览 `dist/` |
+| `npm run pipeline` | `sync` + `translate` + `data` |
 
 ### translate 的常用参数
 
 ```bash
-npm run translate -- --limit=50              # 只翻 50 条
-npm run translate -- --only=linux-terminal   # 只翻指定 slug
-npm run translate -- --force                 # 忽略缓存全量重翻
-npm run translate -- --force --min-chars=3000  # 只重翻长文（正文超过 3000 字符的）
-npm run translate -- --stats                 # 只看缓存覆盖率，不翻译
-npm run translate -- --dry-run               # 只列出待翻条目
-npm run translate -- --prune                 # 清理失效缓存（内容已变更的旧条目）
-npm run translate -- --concurrency=4         # 调并发（默认 6）
+npm run translate -- --limit=50                 # 只翻 50 条
+npm run translate -- --only=linux-terminal      # 只翻指定 slug
+npm run translate -- --force                    # 忽略缓存全量重翻
+npm run translate -- --force --min-chars=3000   # 只重翻长文
+npm run translate -- --stats                    # 只看缓存覆盖率，不翻译
+npm run translate -- --dry-run                  # 只列出待翻条目
+npm run translate -- --prune                    # 清理失效缓存
+npm run translate -- --recheck                  # 校验规则变了，重判整个缓存（不调模型）
+npm run translate -- --concurrency=4            # 调并发（默认 6）
 ```
 
-翻译过程每 25 条落盘一次，中断后重跑会自动接着来——已经翻过的走缓存跳过。
-
-`--prune` 建议偶尔跑一次：缓存以内容指纹为键，上游改了内容，旧指纹就成了永远不会再命中的孤儿，
-留着只会让 `data/zh.json` 越来越大。
+翻译过程每 25 条落盘一次，中断后重跑会自动接着来——已翻过的走缓存跳过。
 
 ## 部署
 
 推送到 `main` 会自动构建并部署到 GitHub Pages。仓库需要配置：
 
-1. **Settings → Pages → Source** 选择 **GitHub Actions**
-2. **Settings → Secrets and variables → Actions** 添加：
-   - `TRANSLATE_API_KEY`：OpenAI 兼容端点的密钥
-   - `TRANSLATE_BASE_URL`：端点地址（如 `https://example.com/v1`）
+1. **Settings → Pages → Source** 选 **GitHub Actions**
+2. **Settings → Secrets and variables → Actions → Repository secrets** 添加：
+   - `TRANSLATE_API_KEY` —— 翻译端点的密钥
+   - `TRANSLATE_BASE_URL` —— 端点地址（如 `https://example.com/v1`）
 
-定时任务默认每周一跑一次（见 `.github/workflows/deploy.yml` 里的 `cron`），
-也可以在 Actions 页面手动触发。
+定时任务默认每周一跑一次（见 `.github/workflows/deploy.yml` 的 `cron`），也可在 Actions 页面手动触发。
+
+**没有配 key 也不会挂**：翻译步骤设了 `continue-on-error`，站点照常部署，只是新提示词会以英文原文呈现并标注「未翻译」。
 
 ### 换成自定义域名
 
@@ -143,7 +146,7 @@ BASE_PATH=/
 
 ## 模型选择
 
-默认用 `deepseek-chat`。**批量翻译请务必用非推理模型**——实测同一句翻译：
+默认 `deepseek-chat`。**批量翻译务必用非推理模型**——同一句翻译的实测消耗：
 
 | 模型 | 输出 token | 其中推理 token | 耗时 |
 | --- | --- | --- | --- |
@@ -152,35 +155,33 @@ BASE_PATH=/
 | `deepseek-v4-flash` | 121 | 113 | 2.0s |
 | `deepseek-v4-pro` | 62 | 54 | 2.4s |
 
-翻译一个 8 个字的句子，推理模型会烧掉近百个推理 token。全量两千多条按这个跑，
-会凭空多出上百万 token，速度还慢一倍。
+翻一个 8 个字的句子，推理模型要烧掉近百个推理 token。全量两千多条按这个跑，凭空多出上百万 token，速度还慢一倍。
+
+全量约消耗 380 万 token，之后每周增量通常只有几条。
 
 ## 数据来源与许可
 
 - **提示词数据**来自 [prompts.chat](https://prompts.chat) 的公开接口，依
   [CC0 1.0 通用](https://creativecommons.org/publicdomain/zero/1.0/) 公共领域 dedication 发布。
-  可复制、可修改、可分发、可商用，无需署名。详见 [LICENSE-CC0](LICENSE-CC0)。
+  可复制、可修改、可分发、可商用，**无需署名**。详见 [LICENSE-CC0](LICENSE-CC0)。
 - **本仓库的站点代码**以 [MIT](LICENSE) 许可开源。
-
-本站与 prompts.chat 及其作者**没有任何隶属关系**，是非官方镜像。
+- 本站与 prompts.chat 及其作者**没有任何隶属关系**，是非官方镜像。
 
 ### 关于示例图片
 
-上游的图像／视频类提示词带有示例图，托管在 DigitalOcean Spaces。
-本仓库**不镜像这些图片**，页面上只保留链回原站的链接——图片的版权状态与 CC0 覆盖的文字数据
-不是一回事，直接盗链也不合适。
+上游的图像／视频类提示词带有示例图，托管在 DigitalOcean Spaces。本仓库**不镜像这些图片**，
+页面上只保留链回原站的链接——图片的版权状态与 CC0 覆盖的文字数据不是一回事，直接盗链也不合适。
 
 ## 关于译文质量
 
-译文由大模型批量生成，**不是人工翻译**。提示词对措辞格外敏感，一个副词的差别就可能改变模型行为，
-所以：
+译文由大模型批量生成，**不是人工翻译**。提示词对措辞格外敏感，一个副词的差别就可能改变模型行为，所以：
 
 - 每一条都保留英文原文，详情页随时可切换对照
 - 代码块和占位符有机械化的保护与校验，但这管不住语义层面的偏差
-- 结构校验不通过的条目会在页面上标出「待校对」
-- 图像／视频／音频生成类提示词的关键词往往本身就是「咒语」，翻译后结果可能明显不同，**建议直接用英文原文**
+- 结构校验不通过的条目会在页面上标出「待校对」（当前 2205 条中有 9 条）
+- **图像／视频／音频生成类提示词**的关键词往往本身就是「咒语」，翻译后出图结果可能明显不同——这类页面会提示你优先使用英文原文
 
-发现译得不对，欢迎到 [Issues](https://github.com/kael-odin/prompts-chat-zh/issues) 反馈，附上条目链接即可。
+发现译得不对，点详情页的「译文有问题？」链接即可，[Issue 表单](.github/ISSUE_TEMPLATE/translation-error.yml) 会自动填好页面地址。
 
 ## 投稿
 

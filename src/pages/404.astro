@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import Search from '../components/Search.astro';
+import { getSite } from '../lib/site.js';
+import { url } from '../lib/url.js';
+
+const site = getSite();
+// 随便挑几条热门，别让用户撞进 404 就无路可走
+const picks = [...site.prompts]
+  .sort((a, b) => (b.voteCount ?? 0) - (a.voteCount ?? 0))
+  .slice(0, 6);
+---
+
+<Base title="页面不存在" description="没有找到这个页面。">
+  <section class="hero">
+    <h1>404：这里没有提示词</h1>
+    <p>链接可能拼错了，或者对应的提示词已经在上游被下架。</p>
+  </section>
+
+  <Search />
+
+  <div class="section-head">
+    <h2>换个方式找</h2>
+  </div>
+  <ul class="chips">
+    <li><a href={url('/prompts/')}>全部提示词</a></li>
+    <li><a href={url('/categories/')}>按分类浏览</a></li>
+    <li><a href={url('/types/text/')}>文本类</a></li>
+    <li><a href={url('/types/image/')}>图像类</a></li>
+  </ul>
+
+  <div class="section-head">
+    <h2>或者看看这些</h2>
+  </div>
+  <ul class="grid">
+    {
+      picks.map((p) => (
+        <li class="card">
+          <h3>
+            <a href={url(`/prompts/${p.slug}/`)}>{p.title}</a>
+          </h3>
+          {p.translated && <p class="en">{p.titleEn}</p>}
+          <p class="excerpt">{p.summary}</p>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

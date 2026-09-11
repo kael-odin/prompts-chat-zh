@@ -30,10 +30,44 @@ const related = getPrompts()
 // 供复制按钮使用的原文。转义 `<` 防止内容里的 </script> 提前闭合标签。
 const rawData = JSON.stringify({ zh: zhRaw, en: enRaw }).replace(/</g, '\\u003c');
 
-const desc = prompt.summary || enRaw.slice(0, 140);
+const desc = (prompt.summary || enRaw.slice(0, 160)).replace(/\s+/g, ' ').trim().slice(0, 160);
+
+const origin = Astro.site ?? SITE.upstream;
+const pageUrl = new URL(Astro.url.pathname, origin).href;
+
+// 结构化数据：一条提示词就是一个 CreativeWork。
+// isBasedOn 指向上游原始页面——既标了出处，也符合 CC0 数据再分发时标注来源的惯例。
+const promptJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: prompt.title,
+  alternativeHeadline: prompt.titleEn,
+  description: desc,
+  url: pageUrl,
+  inLanguage: 'zh-CN',
+  isBasedOn: prompt.sourceUrl,
+  license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+  ...(prompt.category?.name ? { genre: prompt.category.name } : {}),
+  ...(prompt.tags?.length ? { keywords: prompt.tags.join(', ') } : {}),
+  ...(prompt.updatedAt ? { dateModified: prompt.updatedAt } : {}),
+  ...(prompt.mediaUrl ? { image: prompt.mediaUrl } : {}),
+  author: {
+    '@type': 'Person',
+    name: prompt.author ? `@${prompt.author}` : 'prompts.chat 社区',
+    ...(prompt.author ? { url: `https://prompts.chat/@${prompt.author}` } : {}),
+  },
+  isPartOf: { '@type': 'WebSite', name: SITE.name, url: new URL(url('/'), origin).href },
+};
+
+// 「报告翻译问题」的预填链接：参数名对应 issue 表单里各字段的 id
+const issueUrl =
+  `${SITE.repo}/issues/new?template=translation-error.yml` +
+  `&title=${encodeURIComponent(`[译文] ${prompt.title}`)}` +
+  `&page=${encodeURIComponent(pageUrl)}` +
+  `&slug=${encodeURIComponent(prompt.slug)}`;
 ---
 
-<Base title={prompt.title} description={desc}>
+<Base title={prompt.title} description={desc} type="article">
   <div class="crumbs">
     <a href={url('/')}>首页</a> <span aria-hidden="true">/</span>
     <a href={url('/prompts/')}>全部提示词</a>
@@ -73,6 +107,8 @@ const desc = prompt.summary || enRaw.slice(0, 140);
       }
       <span class="sep" aria-hidden="true">·</span>
       <a href={prompt.sourceUrl} target="_blank" rel="noopener">在 prompts.chat 查看</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href={issueUrl} target="_blank" rel="noopener">译文有问题？</a>
     </div>
   </header>
 
@@ -160,6 +196,7 @@ const desc = prompt.summary || enRaw.slice(0, 140);
   }
 
   <script type="application/json" id="raw-data" set:html={rawData} />
+  <script type="application/ld+json" set:html={JSON.stringify(promptJsonLd)} is:inline />
 
   <script>
     (function () {

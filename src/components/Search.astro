@@ -35,6 +35,19 @@ const bundle = `${BASE}/pagefind/`;
           searching: '搜索中…',
         },
       });
+
+      // 支持 ?q= 预填关键词，这样搜索结果是个可分享、可被搜索引擎收录的链接
+      // （Base 布局里那条 SearchAction 结构化数据指向的就是这个地址）
+      var q = new URLSearchParams(location.search).get('q');
+      if (!q) return;
+      var input = document.querySelector('.pagefind-ui__search-input');
+      if (!input) return;
+      var setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      ).set;
+      setter.call(input, q);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', boot);

@@ -3,10 +3,20 @@ import '../styles/global.css';
 import { SITE } from '../lib/config.js';
 import { url } from '../lib/url.js';
 
-const { title, description = SITE.description } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  type = 'website',
+  ogImage = '/og.png',
+  noindex = false,
+} = Astro.props;
 
 const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.tagline}`;
 const here = Astro.url.pathname.replace(/\/+$/, '') || '/';
+
+const origin = Astro.site ?? SITE.upstream;
+const canonical = new URL(Astro.url.pathname, origin).href;
+const ogImageAbs = new URL(url(ogImage), origin).href;
 
 const nav = [
   { href: '/', label: '首页' },
@@ -20,6 +30,28 @@ const isCurrent = (href) => {
   if (href === '/') return here === target;
   return here === target || here.startsWith(`${target}/`);
 };
+
+// 站点级结构化数据。搜索框是真的支持 ?q= 的（Pagefind 会自动填词），
+// 所以这里的 SearchAction 不是画饼。
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name,
+  alternateName: SITE.tagline,
+  url: new URL(url('/'), origin).href,
+  description: SITE.description,
+  inLanguage: 'zh-CN',
+  license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+  isBasedOn: SITE.upstream,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${new URL(url('/prompts/'), origin).href}?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
 ---
 
 <!doctype html>
@@ -29,15 +61,35 @@ const isCurrent = (href) => {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? SITE.upstream)} />
+    {noindex && <meta name="robots" content="noindex,follow" />}
+
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="zh-CN" href={canonical} />
+    <link rel="alternate" hreflang="en" href={SITE.upstream} />
+    <link rel="alternate" hreflang="x-default" href={canonical} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE.name} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="zh_CN" />
+    <meta property="og:image" content={ogImageAbs} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${SITE.name} —— ${SITE.tagline}`} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageAbs} />
+
     <meta name="generator" content={Astro.generator} />
-    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
     <meta name="theme-color" content="#b4532a" />
-    <link rel="alternate" hreflang="zh-CN" href={new URL(Astro.url.pathname, Astro.site ?? SITE.upstream)} />
-    <link rel="alternate" hreflang="en" href={SITE.upstream} />
+    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+    <link rel="sitemap" type="application/xml" href={url('/sitemap-index.xml')} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} is:inline />
   </head>
   <body>
     <a class="skip" href="#main">跳到主要内容</a>
@@ -69,12 +121,20 @@ const isCurrent = (href) => {
         <p>
           本站是 <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a> 的
           <strong>非官方中文镜像</strong>，与上游作者无隶属关系。
-          提示词内容来自上游公开数据，依 <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0 1.0</a>
+          提示词内容来自上游公开数据，依 <a
+            href="https://creativecommons.org/publicdomain/zero/1.0/"
+            target="_blank"
+            rel="noopener">CC0 1.0</a
+          >
           公共领域 dedication 发布，可自由使用。站点代码以 MIT 许可开源。
         </p>
         <p>
           中文译文由机器翻译生成，可能存在偏差——每条都保留了英文原文，可随时对照。
-          想查看最新内容或参与投稿，请前往 <a href={SITE.upstream} target="_blank" rel="noopener">prompts.chat</a>。
+          想查看最新内容或参与投稿，请前往 <a
+            href={SITE.upstream}
+            target="_blank"
+            rel="noopener">prompts.chat</a
+          >。
         </p>
         <p>
           <a href={SITE.repo} target="_blank" rel="noopener">源码仓库</a>

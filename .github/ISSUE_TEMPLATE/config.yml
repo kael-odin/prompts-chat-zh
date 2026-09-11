@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: 提交新提示词
+    url: https://prompts.chat/prompts/new
+    about: 本站是只读镜像，不接受投稿。新提示词请提交给上游，下一次同步会自动出现在这里。
+
+  - name: 上游仓库
+    url: https://github.com/f/prompts.chat
+    about: 提示词内容本身的收录、版权或下架问题，请找上游。
+
+  - name: 关于本站的数据来源与许可
+    url: https://kael-odin.github.io/prompts-chat-zh/about/
+    about: 数据从哪来、CC0 是什么意思、翻译是怎么做的。
