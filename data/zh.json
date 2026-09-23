@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "model": "deepseek-chat",
+  "model": "glm-5.3-flash",
   "entries": {
     "00041d6366aa1723": {
       "title": "AIM 摘要 PDF",
