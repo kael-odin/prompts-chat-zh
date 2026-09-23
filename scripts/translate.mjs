@@ -169,7 +169,9 @@ async function translateDocument(content) {
           { role: 'system', content: system },
           { role: 'user', content: chunk },
         ],
-        { temperature: 0.1, maxTokens: 4096 },
+        // 上限给足：推理模型的思考可能计入输出预算，卡太紧译文会被截断；
+        // 非推理模型到不了上限，放宽没有成本影响
+        { temperature: 0.1, maxTokens: 8192 },
       );
       parts.push(translated.trim());
     }
@@ -207,7 +209,7 @@ async function translateTitle(title) {
       { role: 'system', content: TITLE_SYS },
       { role: 'user', content: guarded },
     ],
-    { temperature: 0.1, maxTokens: 256 },
+    { temperature: 0.1, maxTokens: 1024 },
   );
   return restore(out.trim(), tokens);
 }
@@ -220,7 +222,7 @@ async function makeSummary(prompt, zhContent) {
         { role: 'system', content: SUMMARY_SYS },
         { role: 'user', content: prompt.description.slice(0, 2000) },
       ],
-      { temperature: 0.2, maxTokens: 200 },
+      { temperature: 0.2, maxTokens: 1024 },
     );
     return out.trim();
   }
@@ -229,7 +231,7 @@ async function makeSummary(prompt, zhContent) {
       { role: 'system', content: SUMMARY_SYS },
       { role: 'user', content: zhContent.slice(0, 2000) },
     ],
-    { temperature: 0.2, maxTokens: 200 },
+    { temperature: 0.2, maxTokens: 1024 },
   );
   return out.trim();
 }

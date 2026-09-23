@@ -8,7 +8,7 @@ const BASE = (process.env.TRANSLATE_BASE_URL ?? 'https://xc.lifesecretary.com:80
   '',
 );
 const KEY = process.env.TRANSLATE_API_KEY ?? '';
-export const MODEL = process.env.TRANSLATE_MODEL ?? 'deepseek-chat';
+export const MODEL = process.env.TRANSLATE_MODEL ?? 'deepseek-v4-flash';
 
 /** 累计用量，跑完打印，方便估算成本。 */
 export const usage = { calls: 0, promptTokens: 0, completionTokens: 0, reasoningTokens: 0 };
@@ -43,6 +43,18 @@ async function postOnce(body, timeoutMs) {
 }
 
 /**
+ * 推理模型的思考过程，有的网关会以 <think>…</think> 内联在 content 里一起返回
+ * （有的则放 reasoning_content 字段，不经过这里）。混进译文会直接污染结果，统一剥掉；
+ * 非推理模型没有这个标签，原样透传。
+ */
+function stripThinking(text) {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // 只有开标签没有闭标签说明输出被思考占满后截断了，剩下的全是思考残渣
+    .replace(/^[^<]*<think>[\s\S]*$/i, '');
+}
+
+/**
  * 发一次对话请求，失败按指数退避重试。
  * @returns {Promise<string>} 助手回复正文
  */
@@ -61,7 +73,11 @@ export async function chat(messages, opts = {}) {
       usage.reasoningTokens += u.completion_tokens_details?.reasoning_tokens ?? 0;
       const content = data.choices?.[0]?.message?.content;
       if (typeof content !== 'string') throw new Error('响应里没有 content');
-      return content;
+      const cleaned = stripThinking(content);
+      if (!cleaned.trim() && content.trim()) {
+        throw new Error('整段输出都是思考内容，没有译文');
+      }
+      return cleaned;
     } catch (e) {
       lastErr = e;
       // 4xx（除 429）是请求本身有问题，重试没意义

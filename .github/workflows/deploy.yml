@@ -43,8 +43,19 @@ jobs:
         env:
           TRANSLATE_API_KEY: ${{ secrets.TRANSLATE_API_KEY }}
           TRANSLATE_BASE_URL: ${{ secrets.TRANSLATE_BASE_URL }}
-          TRANSLATE_MODEL: deepseek-chat
+          # 模型走仓库变量（Settings → Secrets and variables → Actions → Variables），
+          # 中转站换模型时改变量即可，不用动代码
+          TRANSLATE_MODEL: ${{ vars.TRANSLATE_MODEL || 'deepseek-v4-flash' }}
         run: npm run translate -- --concurrency=6
+
+      - name: 翻译覆盖率告警
+        # 翻译步是 continue-on-error，失败也显示绿勾；这里把「没翻完」显式顶到运行页上
+        if: always()
+        run: |
+          out=$(npm run translate -- --stats)
+          echo "$out"
+          echo "$out" | grep -q '待翻译：0' || \
+            echo "::warning::译文缓存未覆盖全部条目，对应页面回落英文原文。多半是端点不可达或 key/模型失效，检查上方翻译日志。"
 
       - name: 提交译文缓存
         if: always()
