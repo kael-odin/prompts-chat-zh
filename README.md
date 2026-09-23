@@ -132,7 +132,12 @@ npm run translate -- --concurrency=4            # 调并发（默认 6）
    - `TRANSLATE_API_KEY` —— 翻译端点的密钥
    - `TRANSLATE_BASE_URL` —— 端点地址（如 `https://example.com/v1`）
 
-定时任务默认每周一跑一次（见 `.github/workflows/deploy.yml` 的 `cron`），也可在 Actions 页面手动触发。
+定时同步分两条路：
+
+- **GitHub Actions**（每周一 UTC 03:23，见 `deploy.yml` 的 `cron`，也可手动触发）：拉上游 → 尝试翻译 → 构建部署。但翻译端点若屏蔽数据中心 IP（实测 `xc.lifesecretary.com:8000` 屏蔽了海外机房），这一步会整体 `fetch failed`。它设了 `continue-on-error`，站点照常部署，新提示词回落英文原文；「翻译覆盖率告警」步会在运行页顶 `::warning::`，绿勾不再是假成功。
+- **本地计划任务**（Windows 任务 `prompts-chat-zh-weekly-sync`，每周一 20:33 跑 `scripts/weekly-sync.cmd`）：在本机能直连端点的机器上拉上游、增量翻译（缓存按内容指纹去重，只翻新增/变更）、提交推送 `data/` 缓存——push 会触发 Actions 重新构建部署。要求仓库根目录 `.env` 里填好 `TRANSLATE_API_KEY`。日志在 `%TEMP%\prompts-chat-zh-sync.log`。
+
+模型名放在仓库 **Variables** 的 `TRANSLATE_MODEL`（不在 Secrets 页签），改模型不用动代码。
 
 **没有配 key 也不会挂**：翻译步骤设了 `continue-on-error`，站点照常部署，只是新提示词会以英文原文呈现并标注「未翻译」。
 
